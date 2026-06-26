@@ -79,6 +79,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--no-vad", action="store_true", help="Disable VAD filtering")
     parser.add_argument("--force", action="store_true", help="Regenerate outputs if they already exist")
     parser.add_argument("--plain-text-only", action="store_true", help="Only create .txt output")
+    parser.add_argument("--markdown-only", action="store_true", help="Write a clean .md transcript without timestamps, skip all other formats")
     return parser.parse_args(argv)
 
 
@@ -178,7 +179,23 @@ def write_json(path: Path, *, source: Path, model: str, info: object, segments: 
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
-def expected_outputs(output_dir: Path, stem: str, plain_text_only: bool) -> dict[str, Path]:
+def write_markdown(path: Path, segments: list[SegmentOut]) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as f:
+        paragraph: list[str] = []
+        prev_end = 0.0
+        for seg in segments:
+            if paragraph and seg.start - prev_end > 3.0:
+                f.write(" ".join(paragraph) + "\n\n")
+                paragraph = []
+            paragraph.append(seg.text.strip())
+            prev_end = seg.end
+        if paragraph:
+            f.write(" ".join(paragraph) + "\n")
+
+
+def expected_outputs(output_dir: Path, stem: str, plain_text_only: bool, markdown_only: bool = False) -> dict[str, Path]:
+    if markdown_only:
+        return {"md": output_dir / f"{stem}.md"}
     outputs = {"txt": output_dir / f"{stem}.txt"}
     if not plain_text_only:
         outputs.update(
@@ -198,7 +215,7 @@ def transcribe_one(
     stem: str,
     args: argparse.Namespace,
 ) -> FileResult:
-    outputs = expected_outputs(output_dir, stem, args.plain_text_only)
+    outputs = expected_outputs(output_dir, stem, args.plain_text_only, getattr(args, "markdown_only", False))
     if not args.force and all(path.exists() for path in outputs.values()):
         return FileResult(
             input=str(file_path),
@@ -217,11 +234,14 @@ def transcribe_one(
         )
         segments = [SegmentOut(id=i, start=s.start, end=s.end, text=s.text.strip()) for i, s in enumerate(segments_iter)]
 
-        write_txt(outputs["txt"], segments)
-        if not args.plain_text_only:
-            write_srt(outputs["srt"], segments)
-            write_vtt(outputs["vtt"], segments)
-            write_json(outputs["json"], source=file_path, model=args.model, info=info, segments=segments)
+        if getattr(args, "markdown_only", False):
+            write_markdown(outputs["md"], segments)
+        else:
+            write_txt(outputs["txt"], segments)
+            if not args.plain_text_only:
+                write_srt(outputs["srt"], segments)
+                write_vtt(outputs["vtt"], segments)
+                write_json(outputs["json"], source=file_path, model=args.model, info=info, segments=segments)
 
         elapsed = time.time() - start_time
         return FileResult(

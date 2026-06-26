@@ -27,14 +27,15 @@ The bundled runner uses local `faster-whisper`. It auto-creates a Python venv, i
 
 1. Resolve the path. For WSL, translate Windows paths silently.
 2. Choose sensible defaults:
-   - `--language nl` when the user is Dutch or speaks Dutch (and hasn't specified otherwise).
-   - `--model medium` for Dutch quality.
+   - **Language**: omit `--language` (auto-detect) unless the user tells you the content language. Only pass `--language nl` when the user explicitly says the video is in Dutch.
+   - `--model medium` is the default quality/speed balance.
    - `--model small` when the user asks for speed or on CPU-only hardware.
    - `--model large-v3` when the user asks for maximum quality, or when accuracy is critical (e.g. legal, medical). Needs a GPU.
+   - **Output format**: use `--markdown-only` by default (clean `.md`, no timestamps). Only produce SRT/VTT/JSON when the user asks for subtitles or structured data.
 3. Single file → transcribe it. Directory → process all supported files in sorted order.
 4. Use `--recursive` only when the user mentions subfolders.
-5. Output goes to a `transcripts` folder next to the input unless `--output` is specified.
-6. After transcription succeeds, offer to read the `.txt` and summarize or answer questions about the content.
+5. Output goes to `$HOME/transcripts` on WSL (writable), or a `transcripts` folder next to the input otherwise.
+6. After transcription succeeds, offer to read the `.md` and summarize or answer questions about the content.
 
 ## Commands
 
@@ -43,8 +44,8 @@ Single file (WSL):
 VIDEO_TRANSCRIBER_VENV="$HOME/.cache/video-audio-transcriber-venv" \
 python3 "${CLAUDE_SKILL_DIR}/scripts/run_transcription.py" \
   "/mnt/c/Users/dutch/Downloads/video.mp4" \
-  --language nl \
   --model medium \
+  --markdown-only \
   --output "$HOME/transcripts"
 ```
 
@@ -52,8 +53,8 @@ Single file (non-WSL):
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/scripts/run_transcription.py" \
   "/path/to/video.mp4" \
-  --language nl \
-  --model medium
+  --model medium \
+  --markdown-only
 ```
 
 Directory (non-recursive):

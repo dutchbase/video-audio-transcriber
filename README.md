@@ -10,7 +10,7 @@ Supports MP4, MKV, MOV, MP3, WAV, and more. Outputs `.txt`, `.srt`, `.vtt`, and 
 
 - **100% local** — audio never leaves your machine
 - **Batch transcription** — process a whole folder in one command
-- **Multiple output formats** — plain text, SRT subtitles, VTT, and structured JSON
+- **Clean Markdown output** — plain prose without timestamps by default; SRT/VTT/JSON available when needed
 - **Auto-installs dependencies** — creates its own Python virtual environment on first use
 - **Language detection** — auto-detect or specify a language code (`nl`, `en`, `de`, …)
 - **WSL-aware** — works on Windows Subsystem for Linux with automatic path translation
@@ -66,7 +66,7 @@ Get subtitles for all videos in ~/recordings
 ```
 
 ```
-/video-audio-transcriber "/path/to/video.mp4" --language nl --model medium
+/video-audio-transcriber "/path/to/video.mp4" --model medium --markdown-only
 ```
 
 Claude will pick up the skill automatically, translate paths if needed, and offer to summarize the transcript when it's done.
@@ -89,15 +89,15 @@ Output is written to `~/transcripts/` since `/mnt/c` is typically read-only for 
 # Check dependencies
 python3 scripts/run_transcription.py --check
 
-# Single file
-python3 scripts/run_transcription.py "/path/to/video.mp4" --language nl --model medium
+# Single file — markdown output, language auto-detected
+python3 scripts/run_transcription.py "/path/to/video.mp4" --model medium --markdown-only
 
 # Whole folder
-python3 scripts/run_transcription.py "/path/to/folder" --language nl --model medium
+python3 scripts/run_transcription.py "/path/to/folder" --model medium --markdown-only
 
-# Recursive folder + custom output dir
+# Recursive folder + custom output dir + explicit language
 python3 scripts/run_transcription.py "/path/to/folder" \
-  --language nl --model medium --recursive \
+  --model medium --markdown-only --language nl --recursive \
   --output "/path/to/transcripts"
 ```
 
@@ -121,7 +121,8 @@ python3 scripts/run_transcription.py "/path/to/video.mp4" --model medium
 | `--compute-type` | `default` | `int8`, `float16`, `float32`, or `default` |
 | `--beam-size` | `5` | Beam search width — lower is faster |
 | `--no-vad` | off | Disable voice activity detection |
-| `--plain-text-only` | off | Write only `.txt`, skip SRT/VTT/JSON |
+| `--markdown-only` | off | Write only `.md` (clean prose, no timestamps), skip all other formats |
+| `--plain-text-only` | off | Write only `.txt` with timestamps, skip SRT/VTT/JSON |
 | `--force` | off | Overwrite existing transcript files |
 | `--check` | — | Check dependencies and exit |
 
